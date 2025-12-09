@@ -29,6 +29,8 @@
       --shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
       --transition: all 0.3s ease;
       --border-color: #ddd;
+      --warning-color: #ffc107;
+      --warning-dark: #e0a800;
     }
 
     * {
@@ -214,35 +216,35 @@
       100% { transform: rotate(360deg); }
     }
 
+    /* Warning message */
+    .warning-message {
+      background: #fff3cd;
+      color: #856404;
+      padding: 14px 20px;
+      border-radius: var(--border-radius);
+      border-left: 4px solid var(--warning-color);
+      margin: 0 0 20px 0;
+      text-align: center;
+      font-size: 14px;
+      font-weight: 600;
+      width: 100%;
+      display: none;
+    }
+
+    .warning-message.show {
+      display: block;
+      animation: fadeIn 0.5s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
     #results {
       width: 100%;
       margin-top: 15px;
       margin-bottom: 20px;
-    }
-
-    /* Location info display */
-    .location-info {
-      background: #e8f4ff;
-      border-radius: var(--border-radius);
-      padding: 15px;
-      margin-bottom: 20px;
-      border-left: 4px solid var(--primary-color);
-      display: none;
-    }
-
-    .location-info h3 {
-      color: var(--secondary-color);
-      margin-bottom: 5px;
-      font-size: 1.1rem;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .location-info p {
-      color: var(--text-color);
-      font-size: 0.95rem;
-      margin-bottom: 5px;
     }
 
     /* Table with borders and centered content */
@@ -536,12 +538,9 @@
         font-size: 15px;
       }
       
-      .location-info {
-        padding: 12px;
-      }
-      
-      .location-info h3 {
-        font-size: 1rem;
+      .warning-message {
+        padding: 12px 16px;
+        font-size: 13px;
       }
       
       .results-table {
@@ -619,8 +618,9 @@
         padding: 10px 12px;
       }
       
-      .location-info h3 {
-        font-size: 0.95rem;
+      .warning-message {
+        padding: 10px 14px;
+        font-size: 12px;
       }
       
       .results-table th {
@@ -721,8 +721,8 @@
         <div class="spinner" id="loading" aria-label="Loading results"></div>
       </div>
 
-      <!-- Location info will be displayed here -->
-      <div id="locationInfo" class="location-info"></div>
+      <!-- Warning message for non-LA locations -->
+      <div id="warningMessage" class="warning-message"></div>
 
       <div id="results" role="region" aria-live="polite">
         <!-- Table will appear here -->
@@ -744,7 +744,7 @@
     const loading = document.getElementById("loading");
     const results = document.getElementById("results");
     const instructions = document.getElementById("instructions");
-    const locationInfo = document.getElementById("locationInfo");
+    const warningMessage = document.getElementById("warningMessage");
 
     // Add event listeners
     searchButton.addEventListener("click", sendSearch);
@@ -772,6 +772,26 @@
       loading.style.display = isLoading ? 'block' : 'none';
       searchButton.disabled = isLoading;
       locationButton.disabled = isLoading;
+    }
+
+    // Check if city is Los Angeles
+    function isLosAngeles(cityName) {
+      if (!cityName) return false;
+      
+      // Convert to lowercase for comparison
+      const cityLower = cityName.toLowerCase();
+      
+      // Check for various ways Los Angeles might be listed
+      const laNames = [
+        'los angeles',
+        'la',
+        'l.a.',
+        'l. a.',
+        'city of los angeles',
+        'los angeles city'
+      ];
+      
+      return laNames.some(name => cityLower.includes(name));
     }
 
     // Reverse geocoding to get city name
@@ -813,47 +833,24 @@
           city = 'Unknown location';
         }
         
-        // Get more detailed location info if available
-        const state = address.state || '';
-        const country = address.country || '';
-        
-        return {
-          city: city,
-          state: state,
-          country: country,
-          fullAddress: data.display_name || ''
-        };
+        return city;
         
       } catch (error) {
         console.error('Geocoding error:', error);
-        // Fallback: approximate city based on coordinates
-        return {
-          city: `Near ${lat.toFixed(4)}°, ${lon.toFixed(4)}°`,
-          state: '',
-          country: '',
-          fullAddress: ''
-        };
+        return null;
       }
     }
 
-    // Display location information
-    function showLocationInfo(city, state, country, coords) {
-      locationInfo.style.display = 'block';
+    // Show warning message if not in LA
+    function showWarningIfNotLA(city) {
+      if (!city) return;
       
-      let infoHTML = `<h3><span>📍</span> Your Location</h3>`;
-      infoHTML += `<p><strong>City:</strong> ${city}</p>`;
-      
-      if (state) {
-        infoHTML += `<p><strong>State/Region:</strong> ${state}</p>`;
+      if (!isLosAngeles(city)) {
+        warningMessage.textContent = `⚠ Warning: You might be outside City of LA (Current: ${city})`;
+        warningMessage.classList.add('show');
+      } else {
+        warningMessage.classList.remove('show');
       }
-      
-      if (country) {
-        infoHTML += `<p><strong>Country:</strong> ${country}</p>`;
-      }
-      
-      infoHTML += `<p><small>Coordinates: ${coords}</small></p>`;
-      
-      locationInfo.innerHTML = infoHTML;
     }
 
     async function sendSearch() {
@@ -868,8 +865,8 @@
         toggleInstructions();
       }
       
-      // Hide location info for regular searches
-      locationInfo.style.display = 'none';
+      // Hide warning for regular searches
+      warningMessage.classList.remove('show');
       
       setLoading(true);
       results.innerHTML = '';
@@ -902,9 +899,11 @@
         toggleInstructions();
       }
       
+      // Hide previous warning
+      warningMessage.classList.remove('show');
+      
       setLoading(true);
       results.innerHTML = '';
-      locationInfo.style.display = 'none';
       
       navigator.geolocation.getCurrentPosition(
         async (pos) => {
@@ -914,10 +913,12 @@
             const coords = `${lat},${lon}`;
             
             // Get city information
-            const locationData = await getCityFromCoordinates(lat, lon);
+            const city = await getCityFromCoordinates(lat, lon);
             
-            // Show location information
-            showLocationInfo(locationData.city, locationData.state, locationData.country, coords);
+            // Show warning if not in LA
+            if (city) {
+              showWarningIfNotLA(city);
+            }
             
             const response = await fetch(scriptURL, {
               method: "POST",
@@ -957,7 +958,7 @@
         },
         {
           enableHighAccuracy: true,
-          timeout: 15000, // Increased timeout for geocoding
+          timeout: 15000,
           maximumAge: 0
         }
       );
