@@ -36,7 +36,9 @@
       --highlight-6car: #4CAF50;
       --highlight-4car: #2196F3;
       --highlight-2car: #9C27B0;
-      --highlight-bg: rgba(255, 255, 0, 0.1);
+      --highlight-6car-bg: #E8F5E9;
+      --highlight-4car-bg: #E3F2FD;
+      --highlight-2car-bg: #F3E5F5;
     }
 
     * {
@@ -76,7 +78,7 @@
       text-align: center;
       margin-bottom: 25px;
       padding: 0 15px;
-      width: %;
+      width: 100%;
     }
 
     h1 {
@@ -335,12 +337,13 @@
       to { opacity: 1; max-height: 500px; }
     }
 
-    /* NEW: Horizontal table for car details */
+    /* NEW: Horizontal table for car details - EQUAL WIDTH COLUMNS */
     .car-details-table {
       width: 100%;
       border-collapse: collapse;
       margin: 0;
       font-size: 13px;
+      table-layout: fixed;
     }
 
     .car-details-table th {
@@ -350,7 +353,11 @@
       font-weight: 600;
       border: 1px solid var(--border-color);
       text-align: center;
-      min-width: 80px;
+      min-width: 0;
+      width: 20%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
     .car-details-table td {
@@ -359,45 +366,69 @@
       text-align: center;
       font-weight: 500;
       background-color: var(--white);
+      min-width: 0;
+      width: 20%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: normal;
+      word-wrap: break-word;
     }
 
-    /* Time-based highlighting */
+    /* Time-based highlighting - MORE VISIBLE */
     .time-highlight-6car {
-      background-color: rgba(76, 175, 80, 0.15);
-      border: 2px solid var(--highlight-6car);
+      background-color: var(--highlight-6car-bg);
+      border: 3px solid var(--highlight-6car);
       font-weight: 700;
-      color: #2E7D32;
+      color: #1B5E20;
+      box-shadow: 0 2px 8px rgba(76, 175, 80, 0.3);
     }
 
     .time-highlight-4car {
-      background-color: rgba(33, 150, 243, 0.15);
-      border: 2px solid var(--highlight-4car);
+      background-color: var(--highlight-4car-bg);
+      border: 3px solid var(--highlight-4car);
       font-weight: 700;
-      color: #1565C0;
+      color: #0D47A1;
+      box-shadow: 0 2px 8px rgba(33, 150, 243, 0.3);
     }
 
     .time-highlight-2car {
-      background-color: rgba(156, 39, 176, 0.15);
-      border: 2px solid var(--highlight-2car);
+      background-color: var(--highlight-2car-bg);
+      border: 3px solid var(--highlight-2car);
       font-weight: 700;
-      color: #6A1B9A;
+      color: #4A148C;
+      box-shadow: 0 2px 8px rgba(156, 39, 176, 0.3);
     }
 
     .car-details-table td.highlighted {
       animation: pulse 2s infinite;
+      transform: scale(1.02);
     }
 
     @keyframes pulse {
-      0% { box-shadow: 0 0 0 0 rgba(0, 123, 255, 0.4); }
-      70% { box-shadow: 0 0 0 5px rgba(0, 123, 255, 0); }
-      100% { box-shadow: 0 0 0 0 rgba(0, 123, 255, 0); }
+      0% { 
+        box-shadow: 0 0 0 0 rgba(0, 123, 255, 0.4);
+        transform: scale(1.02);
+      }
+      70% { 
+        box-shadow: 0 0 0 8px rgba(0, 123, 255, 0);
+        transform: scale(1.03);
+      }
+      100% { 
+        box-shadow: 0 0 0 0 rgba(0, 123, 255, 0);
+        transform: scale(1.02);
+      }
     }
 
     .current-time-indicator {
-      font-size: 11px;
-      color: var(--text-light);
-      margin-top: 5px;
-      font-style: italic;
+      font-size: 12px;
+      color: var(--secondary-color);
+      margin-top: 10px;
+      font-weight: 600;
+      text-align: center;
+      padding: 8px;
+      background: rgba(255, 255, 255, 0.8);
+      border-radius: 6px;
+      border-left: 4px solid var(--primary-color);
     }
 
     /* Column widths */
@@ -731,7 +762,13 @@
       .car-details-table th,
       .car-details-table td {
         padding: 8px 4px;
-        min-width: 60px;
+        min-width: 0;
+        width: 20%;
+      }
+      
+      .current-time-indicator {
+        font-size: 11px;
+        padding: 6px;
       }
     }
 
@@ -796,7 +833,8 @@
       .car-details-table th,
       .car-details-table td {
         padding: 6px 3px;
-        min-width: 50px;
+        min-width: 0;
+        width: 20%;
       }
       
       @media (max-width: 360px) {
@@ -821,6 +859,17 @@
         
         .car-details-table {
           font-size: 10px;
+        }
+        
+        .car-details-table th {
+          font-size: 9px;
+          line-height: 1.2;
+          padding: 5px 2px;
+        }
+        
+        .car-details-table td {
+          font-size: 10px;
+          padding: 6px 2px;
         }
       }
     }
@@ -904,9 +953,9 @@
   </div>
 
   <script>
+    // UPDATED APP SCRIPT URL
     const scriptURL = "https://script.google.com/macros/s/AKfycbxtjJJrNtstHbJ_SM9AoMZZDuCaj0_94I3QmqFQRy8HLLyvLqFzwpDEiGD7hXx4mybY6A/exec";
     
-    // URL for fetching route details (columns Ad:Ah)
     const detailsURL = "https://script.google.com/macros/s/AKfycbxtjJJrNtstHbJ_SM9AoMZZDuCaj0_94I3QmqFQRy8HLLyvLqFzwpDEiGD7hXx4mybY6A/exec";
     
     // LOGGING SCRIPT URL
@@ -972,7 +1021,7 @@
       return laNames.some(name => cityLower.includes(name));
     }
 
-    // NEW: Function to determine which car allocation to highlight based on current time
+    // Function to determine which car allocation to highlight based on current time
     function getHighlightedCarClass() {
       const now = new Date();
       const hours = now.getHours();
@@ -983,27 +1032,23 @@
       // 6:30 AM = 6.5
       // 2:30 PM = 14.5
       // 10:30 PM = 22.5
-      // Next day 6:30 AM = 30.5 (but we'll use modulo)
       
-      // Convert to 24-hour continuous scale
-      const timeValue = currentTime;
-      
-      if (timeValue >= 6.5 && timeValue < 14.5) {
+      if (currentTime >= 6.5 && currentTime < 14.5) {
         return 'time-highlight-6car';
-      } else if (timeValue >= 14.5 && timeValue < 22.5) {
+      } else if (currentTime >= 14.5 && currentTime < 22.5) {
         return 'time-highlight-4car';
       } else {
         return 'time-highlight-2car';
       }
     }
 
-    // NEW: Function to get current time display
+    // Function to get current time display
     function getCurrentTimeDisplay() {
       const now = new Date();
       return now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
     }
 
-    // NEW: Function to get time period description
+    // UPDATED: Function to get time period description
     function getTimePeriodDescription() {
       const now = new Date();
       const hours = now.getHours();
@@ -1011,11 +1056,11 @@
       const currentTime = hours + minutes / 60;
       
       if (currentTime >= 6.5 && currentTime < 14.5) {
-        return "6:30 AM - 2:30 PM (6 CAR PLAN)";
+        return "6:30 AM - 2:30 PM (6 CAR plan)";
       } else if (currentTime >= 14.5 && currentTime < 22.5) {
-        return "2:30 PM - 10:30 PM (4 CAR PLAN)";
+        return "2:30 PM - 10:30 PM (4 CAR plan)";
       } else {
-        return "10:30 PM - 6:30 AM (2 CAR PLAN)";
+        return "10:30 PM - 6:30 AM (2 CAR plan)";
       }
     }
 
@@ -1094,7 +1139,7 @@
       }
     }
 
-    // NEW: Toggle expanded details
+    // Toggle expanded details
     window.toggleRouteDetails = async function(routeNumber, rowIndex, expandBtn) {
       const detailsRow = document.getElementById(`details-${rowIndex}`);
       const isExpanded = expandBtn.classList.contains('expanded');
@@ -1136,7 +1181,7 @@
           const currentTime = getCurrentTimeDisplay();
           const timePeriod = getTimePeriodDescription();
           
-          // Create horizontal table with custom headers
+          // Create horizontal table with equal width columns and simplified headers
           detailsRow.innerHTML = `
             <td colspan="3">
               <div class="details-content">
