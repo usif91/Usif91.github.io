@@ -33,6 +33,10 @@
       --warning-dark: #e0a800;
       --expand-bg: #f8fafc;
       --expand-border: #e2e8f0;
+      --highlight-6car: #4CAF50;
+      --highlight-4car: #2196F3;
+      --highlight-2car: #9C27B0;
+      --highlight-bg: rgba(255, 255, 0, 0.1);
     }
 
     * {
@@ -72,7 +76,7 @@
       text-align: center;
       margin-bottom: 25px;
       padding: 0 15px;
-      width: 100%;
+      width: %;
     }
 
     h1 {
@@ -331,60 +335,69 @@
       to { opacity: 1; max-height: 500px; }
     }
 
-    .details-content {
-      padding: 20px;
-      text-align: left;
-    }
-
-    .details-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-      gap: 15px;
-      margin-bottom: 15px;
-    }
-
-    .detail-item {
-      padding: 10px;
-      background: var(--white);
-      border-radius: 8px;
-      border: 1px solid var(--border-color);
-    }
-
-    .detail-label {
-      font-weight: 600;
-      color: var(--secondary-color);
+    /* NEW: Horizontal table for car details */
+    .car-details-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 0;
       font-size: 13px;
-      margin-bottom: 5px;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
     }
 
-    .detail-value {
-      font-size: 14px;
+    .car-details-table th {
+      background-color: var(--light-gray);
       color: var(--text-color);
-      line-height: 1.5;
-    }
-
-    .detail-value.empty {
-      color: var(--text-light);
-      font-style: italic;
-    }
-
-    .loading-details {
+      padding: 10px 8px;
+      font-weight: 600;
+      border: 1px solid var(--border-color);
       text-align: center;
-      padding: 20px;
-      color: var(--text-light);
+      min-width: 80px;
     }
 
-    .loading-details .mini-spinner {
-      display: inline-block;
-      width: 20px;
-      height: 20px;
-      border: 2px solid var(--light-gray);
-      border-top: 2px solid var(--primary-color);
-      border-radius: 50%;
-      animation: spin 1s linear infinite;
-      margin-right: 10px;
+    .car-details-table td {
+      padding: 12px 8px;
+      border: 1px solid var(--border-color);
+      text-align: center;
+      font-weight: 500;
+      background-color: var(--white);
+    }
+
+    /* Time-based highlighting */
+    .time-highlight-6car {
+      background-color: rgba(76, 175, 80, 0.15);
+      border: 2px solid var(--highlight-6car);
+      font-weight: 700;
+      color: #2E7D32;
+    }
+
+    .time-highlight-4car {
+      background-color: rgba(33, 150, 243, 0.15);
+      border: 2px solid var(--highlight-4car);
+      font-weight: 700;
+      color: #1565C0;
+    }
+
+    .time-highlight-2car {
+      background-color: rgba(156, 39, 176, 0.15);
+      border: 2px solid var(--highlight-2car);
+      font-weight: 700;
+      color: #6A1B9A;
+    }
+
+    .car-details-table td.highlighted {
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 0 rgba(0, 123, 255, 0.4); }
+      70% { box-shadow: 0 0 0 5px rgba(0, 123, 255, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(0, 123, 255, 0); }
+    }
+
+    .current-time-indicator {
+      font-size: 11px;
+      color: var(--text-light);
+      margin-top: 5px;
+      font-style: italic;
     }
 
     /* Column widths */
@@ -711,13 +724,14 @@
         font-size: 13px;
       }
       
-      .details-grid {
-        grid-template-columns: 1fr;
-        gap: 10px;
+      .car-details-table {
+        font-size: 12px;
       }
       
-      .detail-item {
-        padding: 8px;
+      .car-details-table th,
+      .car-details-table td {
+        padding: 8px 4px;
+        min-width: 60px;
       }
     }
 
@@ -775,6 +789,16 @@
         min-height: 50px;
       }
       
+      .car-details-table {
+        font-size: 11px;
+      }
+      
+      .car-details-table th,
+      .car-details-table td {
+        padding: 6px 3px;
+        min-width: 50px;
+      }
+      
       @media (max-width: 360px) {
         .address-content {
           flex-direction: column;
@@ -793,6 +817,10 @@
         .intersection-cell {
           font-size: 12px;
           line-height: 1.3;
+        }
+        
+        .car-details-table {
+          font-size: 10px;
         }
       }
     }
@@ -853,7 +881,7 @@
             <li>Or click "Use My Location" for nearby routes</li>
             <li>Click route numbers to copy them</li>
             <li>Click addresses for Google Maps navigation</li>
-            <li>Click the ▼ button next to route numbers for detailed information</li>
+            <li>Click the ▼ button next to route numbers for car allocation details</li>
           </ul>
         </div>
       </div>
@@ -876,10 +904,10 @@
   </div>
 
   <script>
-    const scriptURL = "https://script.google.com/macros/s/AKfycbxoV5pE3ndzVaB4ynz9Pro815khRGyYkeT8gA5gHVLXPcLBaB2bgtz9jxdcMd_t5krBnA/exec";
+    const scriptURL = "https://script.google.com/macros/s/AKfycbxtjJJrNtstHbJ_SM9AoMZZDuCaj0_94I3QmqFQRy8HLLyvLqFzwpDEiGD7hXx4mybY6A/exec";
     
-    // NEW: URL for fetching route details (columns Ad:Ah)
-    const detailsURL = "https://script.google.com/macros/s/AKfycbxoV5pE3ndzVaB4ynz9Pro815khRGyYkeT8gA5gHVLXPcLBaB2bgtz9jxdcMd_t5krBnA/exec";
+    // URL for fetching route details (columns Ad:Ah)
+    const detailsURL = "https://script.google.com/macros/s/AKfycbxtjJJrNtstHbJ_SM9AoMZZDuCaj0_94I3QmqFQRy8HLLyvLqFzwpDEiGD7hXx4mybY6A/exec";
     
     // LOGGING SCRIPT URL
     const loggingURL ="https://script.google.com/macros/s/AKfycbyoO2axI2YVZuP7gVgdF7uRdaxDfAW7ui3et9pFBCJzJcrDqodVB110LMqX96W7q7Qb/exec";
@@ -896,7 +924,7 @@
     // Track click counts for each copy button in 3rd column
     const copyClickCounts = new Map();
     
-    // NEW: Store route details to avoid duplicate fetches
+    // Store route details to avoid duplicate fetches
     const routeDetailsCache = new Map();
 
     // Add event listeners
@@ -944,6 +972,53 @@
       return laNames.some(name => cityLower.includes(name));
     }
 
+    // NEW: Function to determine which car allocation to highlight based on current time
+    function getHighlightedCarClass() {
+      const now = new Date();
+      const hours = now.getHours();
+      const minutes = now.getMinutes();
+      const currentTime = hours + minutes / 60;
+      
+      // Time ranges
+      // 6:30 AM = 6.5
+      // 2:30 PM = 14.5
+      // 10:30 PM = 22.5
+      // Next day 6:30 AM = 30.5 (but we'll use modulo)
+      
+      // Convert to 24-hour continuous scale
+      const timeValue = currentTime;
+      
+      if (timeValue >= 6.5 && timeValue < 14.5) {
+        return 'time-highlight-6car';
+      } else if (timeValue >= 14.5 && timeValue < 22.5) {
+        return 'time-highlight-4car';
+      } else {
+        return 'time-highlight-2car';
+      }
+    }
+
+    // NEW: Function to get current time display
+    function getCurrentTimeDisplay() {
+      const now = new Date();
+      return now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+    }
+
+    // NEW: Function to get time period description
+    function getTimePeriodDescription() {
+      const now = new Date();
+      const hours = now.getHours();
+      const minutes = now.getMinutes();
+      const currentTime = hours + minutes / 60;
+      
+      if (currentTime >= 6.5 && currentTime < 14.5) {
+        return "6:30 AM - 2:30 PM (6 CAR highlighted)";
+      } else if (currentTime >= 14.5 && currentTime < 22.5) {
+        return "2:30 PM - 10:30 PM (4 CAR highlighted)";
+      } else {
+        return "10:30 PM - 6:30 AM (2 CAR highlighted)";
+      }
+    }
+
     // Reverse geocoding to get city name
     async function getCityFromCoordinates(lat, lon) {
       try {
@@ -988,7 +1063,7 @@
       }
     }
 
-    // NEW: Fetch route details from columns Ad:Ah
+    // Fetch route details from columns Ad:Ah
     async function fetchRouteDetails(routeNumber) {
       // Check cache first
       if (routeDetailsCache.has(routeNumber)) {
@@ -1035,7 +1110,7 @@
         expandBtn.innerHTML = '▲';
         
         // If details already loaded, just show them
-        if (detailsRow.querySelector('.details-content')) {
+        if (detailsRow.querySelector('.car-details-table')) {
           detailsRow.classList.add('expanded');
           return;
         }
@@ -1044,7 +1119,7 @@
         detailsRow.innerHTML = `
           <td colspan="3">
             <div class="loading-details">
-              <span class="mini-spinner"></span> Loading route details...
+              <span class="mini-spinner"></span> Loading car allocation details...
             </div>
           </td>
         `;
@@ -1055,27 +1130,39 @@
         
         if (details && details.success) {
           const detailData = details.data || {};
-          const columnNames = details.column_names || ['Ad', 'Ae', 'Af', 'Ag', 'Ah'];
           
+          // Determine which column to highlight
+          const highlightClass = getHighlightedCarClass();
+          const currentTime = getCurrentTimeDisplay();
+          const timePeriod = getTimePeriodDescription();
+          
+          // Create horizontal table with custom headers
           detailsRow.innerHTML = `
             <td colspan="3">
               <div class="details-content">
-                <div class="details-grid">
-                  ${columnNames.map((colName, index) => {
-                    const value = detailData[colName] || detailData[index] || '';
-                    return `
-                      <div class="detail-item">
-                        <div class="detail-label">Column ${colName}</div>
-                        <div class="detail-value ${!value ? 'empty' : ''}">
-                          ${value || 'No information available'}
-                        </div>
-                      </div>
-                    `;
-                  }).join('')}
+                <table class="car-details-table">
+                  <thead>
+                    <tr>
+                      <th>AD:<br>6 CAR</th>
+                      <th>AE:<br>5 CAR</th>
+                      <th>AF:<br>4 CAR</th>
+                      <th>AG:<br>3 CAR</th>
+                      <th>AH:<br>2 CAR</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td class="${highlightClass === 'time-highlight-6car' ? highlightClass + ' highlighted' : ''}">${detailData["AD"] || ""}</td>
+                      <td>${detailData["AE"] || ""}</td>
+                      <td class="${highlightClass === 'time-highlight-4car' ? highlightClass + ' highlighted' : ''}">${detailData["AF"] || ""}</td>
+                      <td>${detailData["AG"] || ""}</td>
+                      <td class="${highlightClass === 'time-highlight-2car' ? highlightClass + ' highlighted' : ''}">${detailData["AH"] || ""}</td>
+                    </tr>
+                  </tbody>
+                </table>
+                <div class="current-time-indicator">
+                  Current time: ${currentTime} | ${timePeriod}
                 </div>
-                <button onclick="copyAllDetails('${routeNumber}')" class="copy-btn" style="margin: 10px auto; display: block;">
-                  📋 Copy All Details
-                </button>
               </div>
             </td>
           `;
@@ -1084,34 +1171,12 @@
             <td colspan="3">
               <div class="details-content">
                 <div class="error-message" style="margin: 0;">
-                  Unable to load route details. Please try again.
+                  Unable to load car allocation details. Please try again.
                 </div>
               </div>
             </td>
           `;
         }
-      }
-    };
-
-    // NEW: Copy all details for a route
-    window.copyAllDetails = async function(routeNumber) {
-      const details = await fetchRouteDetails(routeNumber);
-      if (!details || !details.data) return;
-      
-      const detailData = details.data;
-      const columnNames = details.column_names || ['Ad', 'Ae', 'Af', 'Ag', 'Ah'];
-      
-      let textToCopy = `Route ${routeNumber} Details:\n\n`;
-      columnNames.forEach(colName => {
-        const value = detailData[colName] || detailData[columnNames.indexOf(colName)] || '';
-        textToCopy += `${colName}: ${value}\n`;
-      });
-      
-      try {
-        await navigator.clipboard.writeText(textToCopy);
-        showTempNotification('All route details copied!');
-      } catch (error) {
-        alert("Copy failed. Please try selecting and copying manually.");
       }
     };
 
@@ -1370,7 +1435,7 @@
                     </button>
                     <button class="expand-btn" 
                             onclick="toggleRouteDetails('${formattedRouteNumber}', ${i}, this)"
-                            aria-label="Show details for route ${formattedRouteNumber}">
+                            aria-label="Show car allocation for route ${formattedRouteNumber}">
                       ▼
                     </button>
                   </div>
@@ -1410,7 +1475,7 @@
         // Details row (initially hidden)
         table += `
           <tr id="details-${i}" class="expanded-details">
-            <!-- Details will be loaded here when expanded -->
+            <!-- Car allocation details will be loaded here when expanded -->
           </tr>
         `;
       }
