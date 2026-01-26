@@ -1,0 +1,717 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Route Dashboard</title>
+  <style>
+    :root{
+      --bg:#0b0d12; --card:#121624; --text:#e8ebf3; --muted:#a8b0c6;
+      --border:#27304a; --accent:#7aa2ff; --danger:#ff6b6b; --ok:#2dd4bf;
+      --hi: rgba(122,162,255,0.18);
+    }
+    *{ box-sizing:border-box; }
+    body{
+      margin:0;
+      font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,"Apple Color Emoji","Segoe UI Emoji";
+      background: radial-gradient(1000px 600px at 10% 0%, rgba(122,162,255,0.22), transparent 55%),
+                  radial-gradient(1000px 600px at 90% 10%, rgba(45,212,191,0.18), transparent 55%),
+                  var(--bg);
+      color:var(--text);
+    }
+    header{
+      padding:16px 14px 10px;
+      position:sticky; top:0;
+      background: linear-gradient(to bottom, rgba(11,13,18,0.95), rgba(11,13,18,0.72), rgba(11,13,18,0));
+      backdrop-filter: blur(10px);
+      z-index:10;
+    }
+    .wrap{ max-width:1100px; margin:0 auto; }
+    h1{ margin:0 0 10px; font-size:18px; letter-spacing:0.2px; }
+    .controls{
+      display:grid;
+      grid-template-columns: 1fr auto auto;
+      gap:10px;
+      align-items:center;
+    }
+    input[type="search"]{
+      width:100%;
+      padding:10px 12px;
+      border-radius:12px;
+      border:1px solid var(--border);
+      background: rgba(18,22,36,0.8);
+      color:var(--text);
+      outline:none;
+    }
+    input[type="search"]::placeholder{ color: rgba(168,176,198,0.75); }
+    button{
+      padding:10px 12px;
+      border-radius:12px;
+      border:1px solid var(--border);
+      background: rgba(18,22,36,0.9);
+      color:var(--text);
+      cursor:pointer;
+      white-space:nowrap;
+    }
+    button:hover{ border-color: rgba(122,162,255,0.55); }
+    button:disabled{ opacity:0.55; cursor:not-allowed; }
+    .meta{ display:flex; gap:10px; margin-top:10px; flex-wrap:wrap; color:var(--muted); font-size:12px; }
+    .pill{
+      border:1px solid var(--border);
+      background: rgba(18,22,36,0.75);
+      padding:6px 10px;
+      border-radius:999px;
+      display:flex;
+      align-items:center;
+      gap:8px;
+    }
+    main{ padding:0 14px 18px; }
+    .card{
+      margin-top:12px;
+      border:1px solid var(--border);
+      background: rgba(18,22,36,0.78);
+      border-radius:16px;
+      overflow:hidden;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.22);
+    }
+    table{
+      width:100%;
+      border-collapse:collapse;
+      table-layout:fixed; /* enables percentage widths */
+      font-size:13px;
+    }
+    col.route { width: 26%; }
+    col.yard  { width: 17%; }
+    col.street{ width: 57%; }
+
+    thead th{
+      position:sticky; top:0;
+      background: rgba(18,22,36,0.95);
+      border-bottom:1px solid var(--border);
+      text-align:left;
+      padding:10px 10px;
+      font-weight:600;
+      color: rgba(232,235,243,0.92);
+      z-index:1;
+    }
+    tbody td{
+      border-bottom:1px solid rgba(39,48,74,0.7);
+      padding:10px 10px;
+      color: rgba(232,235,243,0.92);
+      vertical-align:top;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      white-space:nowrap;
+    }
+    tbody tr:hover td{ background: rgba(122,162,255,0.08); }
+    .muted{ color: var(--muted); }
+    .actions{
+      display:flex; gap:10px;
+      padding:12px;
+      border-top:1px solid rgba(39,48,74,0.65);
+      align-items:center;
+      justify-content: space-between;
+      flex-wrap:wrap;
+    }
+    .left-actions{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+    .note{ color: var(--muted); font-size:12px; }
+    .error{ color: var(--danger); font-size:12px; }
+    .ok{ color: var(--ok); font-size:12px; }
+
+    .cell-flex{ display:flex; align-items:center; gap:8px; min-width:0; }
+    .cell-flex > span{ min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; display:block; }
+    .icon-btn{
+      width:28px; height:28px;
+      display:inline-flex; align-items:center; justify-content:center;
+      padding:0;
+      border-radius:10px;
+      border:1px solid var(--border);
+      background: rgba(18,22,36,0.92);
+      cursor:pointer;
+      user-select:none;
+      flex: 0 0 auto;
+    }
+    .icon-btn:hover{ border-color: rgba(122,162,255,0.55); }
+    .icon-btn:active{ transform: translateY(1px); }
+
+    .link{ color: var(--accent); text-decoration:none; }
+    .link:hover{ text-decoration:underline; }
+
+    /* Expanded detail row */
+    .detail-row td{
+      background: rgba(18,22,36,0.65);
+      padding: 10px 10px 14px;
+      white-space: normal;
+    }
+    .detail-box{
+      border:1px solid rgba(39,48,74,0.8);
+      background: rgba(11,13,18,0.35);
+      border-radius:12px;
+      padding:10px;
+      overflow:auto;
+    }
+    .mini{
+      border-collapse: collapse;
+      width: 100%;
+      table-layout: fixed;
+      font-size: 12px;
+    }
+    .mini th, .mini td{
+      border-bottom: 1px solid rgba(39,48,74,0.7);
+      padding: 6px 8px;
+      white-space: nowrap;
+      overflow:hidden;
+      text-overflow: ellipsis;
+    }
+    .mini th{ color: rgba(232,235,243,0.92); text-align:left; }
+    .mini td{ color: rgba(232,235,243,0.92); }
+    .mini .highlight{
+      background: var(--hi);
+      border-radius: 6px;
+    }
+
+    /* Spinner */
+    .spinner{
+      width:14px; height:14px;
+      border:2px solid rgba(232,235,243,0.25);
+      border-top-color: rgba(232,235,243,0.9);
+      border-radius: 50%;
+      display:inline-block;
+      animation: spin 0.85s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    @media (max-width: 760px){
+      .controls{ grid-template-columns: 1fr; }
+      button{ width:100%; }
+      table{ font-size: 13px; }
+    }
+  
+    table th, table td{
+      text-align: center;
+      vertical-align: middle;
+    }
+    tbody td{
+      padding: 14px 10px;
+      white-space: normal;
+      line-height: 1.35;
+    }
+    .cell-flex{
+      justify-content: center;
+    }
+
+  
+    /* Zebra striping (applied via JS classes) */
+    tr.zebra-odd > td { background: rgba(255,255,255,0.03); }
+    tr.zebra-even > td { background: rgba(255,255,255,0.00); }
+    tr.zebra-odd.detail-row > td { background: rgba(255,255,255,0.02); }
+    tr.zebra-even.detail-row > td { background: rgba(255,255,255,0.01); }
+
+    /* Show full cell content (wrap, no ellipsis) */
+    tbody td{
+      overflow: visible;
+      text-overflow: clip;
+      word-break: break-word;
+    }
+    .cell-flex > span{
+      white-space: normal;
+      overflow: visible;
+      text-overflow: clip;
+      max-width: none;
+    }
+
+  
+    /* Center expanded table completely */
+    .mini th, .mini td{
+      text-align: center !important;
+      vertical-align: middle !important;
+    }
+
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap">
+      <h1>Route Dashboard</h1>
+      <div class="controls">
+        <input id="q" type="search" placeholder='Search (partial match). Example: "3rd jef"' autocomplete="off" />
+        <button id="btnNear">Search near me (top 5)</button>
+        
+      </div>
+      <div class="meta">
+        <div class="pill"><span class="muted">Rows:</span> <span id="totalRows">—</span></div>
+        <div class="pill"><span class="muted">Matches:</span> <span id="matchCount">—</span></div>
+      </div>
+      <div id="status" class="meta" style="margin-top:8px;"></div>
+    </div>
+  </header>
+
+  <main>
+    <div class="wrap">
+      <div class="card">
+        <table>
+          <colgroup>
+            <col class="route" />
+            <col class="yard" />
+            <col class="street" />
+          </colgroup>
+          <thead>
+            <tr>
+              <th>Route</th>
+              <th>YARD</th>
+              <th>STREETSORT</th>
+            </tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
+
+        <div class="actions">
+          <div class="left-actions">
+            <button id="btnMore">Load more</button>
+            <span class="note" id="shownNote">—</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Reads ./data.xlsx each time (same folder as this HTML). -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+  <script>
+    const EXCEL_FILE = "data.xlsx";
+    const $ = (id) => document.getElementById(id);
+
+    const state = {
+      DATA: [],
+      query: "",
+      matches: [],
+      shown: 0,
+      pageSize: 200,
+
+      nearMode: false,
+      nearSorted: [],
+      nearIndex: 0,
+      nearPageSize: 5,
+
+      userPos: null, // {lat, lon, accuracy}
+      expandedRoutes: new Set(),
+    };
+
+    function normalizeForTokens(s){
+      return (s ?? "")
+        .toString()
+        .toUpperCase()
+        .replace(/&/g, " ")
+        .replace(/[,.;:/\\()\[\]{}'"`~!@#$%^*+=<>?|-]/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+    }
+
+    function tokenizeQuery(q){
+      const tokens = normalizeForTokens(q).split(" ").filter(Boolean);
+      return tokens.filter(t => t !== "AND");
+    }
+
+    function buildHaystack(r){
+      return normalizeForTokens(`${r.Route ?? ""} ${r.YARD ?? ""} ${r.STREETSORT ?? ""}`);
+    }
+
+    function tokenMatch(query, haystack){
+      if (!query) return true;
+      const tokens = tokenizeQuery(query);
+      if (!tokens.length) return true;
+      return tokens.every(t => haystack.includes(t));
+    }
+
+    function parseCoord(s){
+      if (s === null || s === undefined) return {lat:null, lon:null};
+      const txt = String(s).trim().replace(/,+\s*$/,"");
+      const parts = txt.split(",").map(x => x.trim()).filter(Boolean);
+      if (parts.length < 2) return {lat:null, lon:null};
+      const lat = Number(parts[0]);
+      const lon = Number(parts[1]);
+      if (!Number.isFinite(lat) || !Number.isFinite(lon)) return {lat:null, lon:null};
+      return {lat, lon};
+    }
+
+    function haversineMiles(lat1, lon1, lat2, lon2){
+      const toRad = (d) => (d * Math.PI) / 180;
+      const R = 3958.7613;
+      const dLat = toRad(lat2 - lat1);
+      const dLon = toRad(lon2 - lon1);
+      const a = Math.sin(dLat/2)**2 +
+                Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+                Math.sin(dLon/2)**2;
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      return R * c;
+    }
+
+    function setStatus(kind, msgHtml){
+      const el = $("status");
+      if (!msgHtml){ el.textContent = ""; return; }
+      el.innerHTML = `<div class="${kind} pill">${msgHtml}</div>`;
+    }
+
+    function escapeHtml(s){
+      return String(s)
+        .replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")
+        .replaceAll('"',"&quot;").replaceAll("'","&#039;");
+    }
+
+
+    function formatRoute(route){
+      if(route === null || route === undefined) return '<span class="muted">—</span>';
+      const s = String(route).replace(/\D/g,'');
+      if(!s) return escapeHtml(route);
+      return s.padStart(5,'0');
+    }
+
+    function formatVal(v){
+      if (v === null || v === undefined || v === "") return '<span class="muted">—</span>';
+      return escapeHtml(v);
+    }
+
+    async function copyText(text){
+      try{
+        await navigator.clipboard.writeText(text);
+        setStatus("ok", `Copied: <b>${escapeHtml(text)}</b>`);
+        setTimeout(() => setStatus("", ""), 1100);
+      }catch(e){
+        const ta = document.createElement("textarea");
+        ta.value = text;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand("copy");
+        ta.remove();
+        setStatus("ok", `Copied: <b>${escapeHtml(text)}</b>`);
+        setTimeout(() => setStatus("", ""), 1100);
+      }
+    }
+
+    function mapsDirUrl(lat, lon){
+      return `https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}`;
+    }
+
+    function getHighlightedPlanKey(){
+      // Use user's local time
+      const now = new Date();
+      const mins = now.getHours() * 60 + now.getMinutes();
+
+      const t630 = 6*60 + 30;   // 390
+      const t1430 = 14*60 + 30; // 870
+      const t2230 = 22*60 + 30; // 1350
+
+      if (mins >= t630 && mins < t1430) return "6 car";
+      if (mins >= t1430 && mins < t2230) return "4 car";
+      // overnight (22:30 -> 06:30)
+      return "2 car";
+    }
+
+    function renderRows(rows, append=false){
+      const tbody = $("tbody");
+      if (!append) tbody.innerHTML = "";
+
+      const hiKey = getHighlightedPlanKey();
+
+      let zebraIndex = 0;
+      for (const r of rows){
+        const zebraClass = (zebraIndex % 2 === 0) ? "zebra-even" : "zebra-odd";
+        zebraIndex++;
+
+        const isExpanded = state.expandedRoutes.has(String(r.Route));
+
+        const routeCell = `
+          <div class="cell-flex" data-route-click="${formatRoute(r.Route)}" title="Tap to copy route">
+            <span>${formatRoute(r.Route)}</span>
+          </div>
+        `;
+
+        const yardCell = `
+          <div class="cell-flex" data-toggle="${escapeHtml(r.Route)}" title="Tap to expand/collapse">
+            <span>${formatVal(r.YARD)}</span>
+          </div>
+        `;
+
+        const hasCoords = (typeof r.lat === "number" && typeof r.lon === "number");
+        const streetLink = hasCoords
+          ? `<a class="link" href="${mapsDirUrl(r.lat, r.lon)}" target="_blank" rel="noopener">${formatVal(r.STREETSORT)}</a>`
+          : `${formatVal(r.STREETSORT)}`;
+
+        const streetCell = `
+          <div class="cell-flex">
+            <span>${streetLink}</span>
+            <button class="icon-btn" title="Copy route + streetsort" data-copy-route-street="${formatRoute(r.Route)}|${escapeHtml(r.STREETSORT ?? "")}">⧉</button>
+          </div>
+        `;
+
+        const tr = document.createElement("tr");
+        tr.className = zebraClass;
+        tr.innerHTML = `
+          <td>${routeCell}</td>
+          <td>${yardCell}</td>
+          <td>${streetCell}</td>
+        `;
+        tbody.appendChild(tr);
+
+        // Detail row (collapsible)
+        const detailTr = document.createElement("tr");
+        detailTr.className = `detail-row ${zebraClass}`;
+        detailTr.style.display = isExpanded ? "" : "none";
+
+        // mini table WITHOUT Route and WITHOUT 1 car (per request)
+        const cols = ["6 car","5 car","4 car","3 car","2 car"];
+        const ths = cols.map(c => `<th>${escapeHtml(c)}</th>`).join("");
+        const tds = cols.map(c => {
+          const cls = (c === hiKey) ? "highlight" : "";
+          return `<td class="${cls}">${formatVal(r[c])}</td>`;
+        }).join("");
+
+        detailTr.innerHTML = `
+          <td colspan="3">
+            <div class="detail-box">
+              <table class="mini">
+                <thead><tr>${ths}</tr></thead>
+                <tbody><tr>${tds}</tr></tbody>
+              </table>
+            </div>
+          </td>
+        `;
+        tbody.appendChild(detailTr);
+      }
+    }
+
+    function updateCounts(){
+      $("totalRows").textContent = state.DATA.length.toLocaleString();
+      $("matchCount").textContent = (state.nearMode ? state.nearSorted.length : state.matches.length).toLocaleString();
+    }
+
+    function computeMatches(){
+      state.nearMode = false;
+      state.nearSorted = [];
+      state.nearIndex = 0;
+
+      const q = state.query;
+      state.matches = state.DATA.filter(r => tokenMatch(q, buildHaystack(r)));
+      state.shown = 0;
+
+      updateCounts();
+      renderNext(true);
+    }
+
+    function renderNext(clear=false){
+      const start = state.shown;
+      const end = Math.min(state.shown + state.pageSize, state.matches.length);
+      const chunk = state.matches.slice(start, end);
+
+      renderRows(chunk, !clear);
+      state.shown = end;
+
+      $("btnMore").disabled = state.shown >= state.matches.length;
+      $("shownNote").textContent = state.matches.length
+        ? `Showing ${state.shown.toLocaleString()} of ${state.matches.length.toLocaleString()}`
+        : `No matches`;
+    }
+
+    function renderNextNear(){
+      const start = state.nearIndex;
+      const end = Math.min(state.nearIndex + state.nearPageSize, state.nearSorted.length);
+      const chunk = state.nearSorted.slice(start, end).map(x => {
+        const r = {...x.r};
+        r.__distance = x.d;
+        return r;
+      });
+
+      renderRows(chunk, start !== 0);
+      state.nearIndex = end;
+
+      $("btnMore").disabled = state.nearIndex >= state.nearSorted.length;
+      $("shownNote").textContent = state.nearSorted.length
+        ? `Showing ${Math.min(state.nearIndex, state.nearSorted.length)} of ${state.nearSorted.length} nearest`
+        : `No coordinate rows found`;
+      updateCounts();
+    }
+
+    function clearSearch(){
+      state.query = "";
+      $("q").value = "";
+      state.userPos = null;
+      state.expandedRoutes.clear();
+      setStatus("", "");
+      computeMatches();
+    }
+
+    async function loadWorkbook(){
+      setStatus("muted", `Loading ${EXCEL_FILE}… <span class="spinner"></span>`);
+      try{
+        const resp = await fetch(EXCEL_FILE, {cache: "no-store"});
+        if (!resp.ok) throw new Error(`Fetch failed (${resp.status})`);
+        const buf = await resp.arrayBuffer();
+        const wb = XLSX.read(buf, {type: "array"});
+
+        const s1name = wb.SheetNames[0];
+        const s2name = wb.SheetNames[1];
+        const s1 = wb.Sheets[s1name];
+        const s2 = wb.Sheets[s2name];
+
+        const sheet1 = XLSX.utils.sheet_to_json(s1, {defval: null});
+        const sheet2 = XLSX.utils.sheet_to_json(s2, {defval: null});
+
+        const routeKey1 = sheet1.length ? (("Route" in sheet1[0]) ? "Route" : Object.keys(sheet1[0])[0]) : "Route";
+        const routeKey2 = sheet2.length ? (("Route" in sheet2[0]) ? "Route" : Object.keys(sheet2[0])[0]) : "Route";
+
+        const unnamed6 = sheet2.length ? Object.keys(sheet2[0]).find(k => k.toLowerCase().includes("unnamed") && k.includes("6")) : null;
+
+        const map2 = new Map();
+        for (const r of sheet2){
+          const route = Number(r[routeKey2]);
+          if (!Number.isFinite(route)) continue;
+          const row = {...r};
+          row.Route = route;
+          if (unnamed6 && !("1 car" in row)){
+            row["1 car"] = row[unnamed6];
+          }
+          map2.set(route, row);
+        }
+
+        const merged = [];
+        for (const r of sheet1){
+          const route = Number(r[routeKey1]);
+          if (!Number.isFinite(route)) continue;
+
+          const row1 = {...r};
+          row1.Route = route;
+
+          const row2 = map2.get(route) || {};
+          const out = {
+            Route: row1.Route,
+            YARD: row1.YARD ?? null,
+            STREETSORT: row1.STREETSORT ?? null,
+            coordinates: row1.coordinates ?? null, // only for navigation/near-me
+            "6 car": row2["6 car"] ?? null,
+            "5 car": row2["5 car"] ?? null,
+            "4 car": row2["4 car"] ?? null,
+            "3 car": row2["3 car"] ?? null,
+            "2 car": row2["2 car"] ?? null,
+            "1 car": row2["1 car"] ?? null,
+          };
+
+          const {lat, lon} = parseCoord(out.coordinates);
+          out.lat = lat;
+          out.lon = lon;
+
+          merged.push(out);
+        }
+
+        state.DATA = merged;
+        setStatus("ok", `Loaded ${merged.length.toLocaleString()} rows from ${EXCEL_FILE}.`);
+        updateCounts();
+        computeMatches();
+      }catch(err){
+        setStatus("error", `Could not load ${EXCEL_FILE}. Error: ${escapeHtml(err.message)}`);
+        state.DATA = [];
+        updateCounts();
+        $("tbody").innerHTML = "";
+        $("btnMore").disabled = true;
+        $("shownNote").textContent = "—";
+      }
+    }
+
+    function searchNearMe(){
+      if (!navigator.geolocation){
+        setStatus("error", "Geolocation not supported in this browser.");
+        return;
+      }
+      setStatus("muted", `Searching near you… <span class="spinner"></span>`);
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          state.userPos = {
+            lat: pos.coords.latitude,
+            lon: pos.coords.longitude,
+            accuracy: pos.coords.accuracy
+          };
+
+          const withDist = state.DATA
+            .filter(r => typeof r.lat === "number" && typeof r.lon === "number")
+            .map(r => ({ r, d: haversineMiles(state.userPos.lat, state.userPos.lon, r.lat, r.lon) }))
+            .sort((a,b) => a.d - b.d);
+
+          state.nearMode = true;
+          state.nearSorted = withDist;
+          state.nearIndex = 0;
+
+          const lat = state.userPos.lat.toFixed(6);
+          const lon = state.userPos.lon.toFixed(6);
+          const acc = (state.userPos.accuracy ?? 0).toFixed(0);
+          setStatus("ok", `Captured your location: <b>${lat}, ${lon}</b> (±${acc} m).`);
+
+          // Reset expanded to avoid heavy open state changes across new ordered view
+          state.expandedRoutes.clear();
+          $("tbody").innerHTML = "";
+          renderNextNear();
+        },
+        (err) => setStatus("error", `Could not get your location: ${escapeHtml(err.message)}`),
+        { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
+      );
+    }
+
+    function handleTableClick(e){
+      // Route cell click -> copy padded route
+      const routeWrap = e.target.closest("[data-route-click]");
+      if (routeWrap){
+        const route = routeWrap.getAttribute("data-route-click");
+        if (route) copyText(String(route));
+        return;
+      }
+
+      // Streetsort copy button
+      const btn = e.target.closest("button");
+      if (btn){
+        const copyRouteStreet = btn.getAttribute("data-copy-route-street");
+        if (copyRouteStreet !== null){
+          const [route, street] = String(copyRouteStreet).split("|");
+          copyText(`${route} ${street}`.trim());
+          return;
+        }
+      }
+
+      // Yard cell click -> toggle expansion
+      const toggleWrap = e.target.closest("[data-toggle]");
+      if (toggleWrap){
+        const key = String(toggleWrap.getAttribute("data-toggle"));
+        if (state.expandedRoutes.has(key)) state.expandedRoutes.delete(key);
+        else state.expandedRoutes.add(key);
+
+        // Re-render currently shown rows (preserve mode and pagination)
+        $("tbody").innerHTML = "";
+        if (state.nearMode){
+          const shown = state.nearSorted.slice(0, state.nearIndex).map(x => {
+            const r = {...x.r}; r.__distance = x.d; return r;
+          });
+          renderRows(shown, false);
+        } else {
+          const shown = state.matches.slice(0, state.shown);
+          renderRows(shown, false);
+        }
+      }
+    }
+
+    $("q").addEventListener("input", (e) => {
+      state.query = e.target.value || "";
+      state.userPos = null;
+      setStatus("", "");
+      computeMatches();
+    });
+
+    $("btnMore").addEventListener("click", () => {
+      if (state.nearMode) renderNextNear();
+      else renderNext(false);
+    });
+
+        $("btnNear").addEventListener("click", searchNearMe);
+    $("tbody").addEventListener("click", handleTableClick);
+
+    loadWorkbook();
+  </script>
+</body>
+</html>
