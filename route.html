@@ -80,8 +80,8 @@
       table-layout:fixed; /* enables percentage widths */
       font-size:13px;
     }
-    col.route { width: 23%; }
-    col.yard  { width: 20%; }
+    col.route { width: 26%; }
+    col.yard  { width: 17%; }
     col.street{ width: 57%; }
 
     thead th{
@@ -359,6 +359,14 @@
         .replaceAll('"',"&quot;").replaceAll("'","&#039;");
     }
 
+
+    function formatRoute(route){
+      if(route === null || route === undefined) return '<span class="muted">—</span>';
+      const s = String(route).replace(/\D/g,'');
+      if(!s) return escapeHtml(route);
+      return s.padStart(5,'0');
+    }
+
     function formatVal(v){
       if (v === null || v === undefined || v === "") return '<span class="muted">—</span>';
       return escapeHtml(v);
@@ -415,8 +423,8 @@
 
         const routeCell = `
           <div class="cell-flex">
-            <span>${formatVal(r.Route)}</span>
-            <button class="icon-btn" title="Copy route" data-copy-route="${escapeHtml(r.Route)}">⧉</button>
+            <span>${formatRoute(r.Route)}</span>
+            <button class="icon-btn" title="Copy route" data-copy-route="${formatRoute(r.Route)}">⧉</button>
           </div>
         `;
 
@@ -435,7 +443,7 @@
         const streetCell = `
           <div class="cell-flex">
             <span>${streetLink}</span>
-            <button class="icon-btn" title="Copy route + streetsort" data-copy-route-street="${escapeHtml(r.Route)}|${escapeHtml(r.STREETSORT ?? "")}">⧉</button>
+            <button class="icon-btn" title="Copy route + streetsort" data-copy-route-street="${formatRoute(r.Route)}|${escapeHtml(r.STREETSORT ?? "")}">⧉</button>
           </div>
         `;
 
