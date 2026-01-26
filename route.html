@@ -298,30 +298,119 @@
       expandedRoutes: new Set(),
     };
 
+
+    // Phrase normalization (keep as single tokens)
+    const PHRASES = [
+      ["SAN DIEGO", "SAN_DIEGO"],
+      ["SANTA ANA", "SANTA_ANA"],
+      ["SANTA MONICA", "SANTA_MONICA"],
+      ["GOLDEN STATE", "GOLDEN_STATE"],
+      ["GLENN ANDERSON", "GLENN_ANDERSON"],
+      ["RONALD REAGAN", "RONALD_REAGAN"],
+      ["HOLLYWOOD FWY", "HOLLYWOOD_FWY"],
+    ];
+
+    // Token synonym expansion: each key expands to the listed alternatives (AND across groups, OR within group)
+    const SYN = {
+      "FREEWAY": ["FWY"],
+      "FWY": ["FREEWAY"],
+      "BLVD": ["BL"],
+      "BL": ["BLVD"],
+      "STREET": ["ST"],
+      "ST": ["STREET"],
+      "ROAD": ["RD"],
+      "RD": ["ROAD"],
+
+      "110": ["HARBOR"],
+      "HARBOR": ["110"],
+
+      "405": ["SAN_DIEGO"],
+      "SAN_DIEGO": ["405"],
+
+      "101": ["VENTURA", "SANTA_ANA", "HOLLYWOOD"],
+      "VENTURA": ["101"],
+      "SANTA_ANA": ["101"],
+      "HOLLYWOOD": ["101", "170", "HOLLYWOOD_FWY"],
+
+      "105": ["GLENN_ANDERSON"],
+      "GLENN_ANDERSON": ["105"],
+
+      "10": ["SANTA_MONICA"],
+      "SANTA_MONICA": ["10"],
+
+      "5": ["GOLDEN_STATE"],
+      "GOLDEN_STATE": ["5"],
+
+      "60": ["POMONA"],
+      "POMONA": ["60"],
+
+      "90": ["MARINA"],
+      "MARINA": ["90"],
+
+      "2": ["GLENDALE"],
+      "GLENDALE": ["2"],
+
+      "118": ["RONALD_REAGAN"],
+      "RONALD_REAGAN": ["118"],
+
+      "14": ["SIERRA"],
+      "SIERRA": ["14"],
+
+      "170": ["HOLLYWOOD_FWY", "HOLLYWOOD"],
+      "HOLLYWOOD_FWY": ["170", "HOLLYWOOD"],
+
+      "134": ["VENTURA"],
+      "210": ["FOOTHILL"],
+      "FOOTHILL": ["210"],
+    };
+
+    function applyPhrases(s){
+      let out = (s ?? "").toString().toUpperCase();
+      // Normalize punctuation to spaces first so phrase matching is reliable
+      out = out.replace(/&/g, " ")
+               .replace(/[,.;:/\\()\\[\\]{}'"`~!@#$%^*+=<>?|-]/g, " ")
+               .replace(/\\s+/g, " ")
+               .trim();
+      for (const [phrase, token] of PHRASES){
+        // replace whole-phrase occurrences
+        const re = new RegExp("\\\\b" + phrase.replace(/\\s+/g, "\\\\s+") + "\\\\b", "g");
+        out = out.replace(re, token);
+      }
+      return out;
+    }
+
+
     function normalizeForTokens(s){
-      return (s ?? "")
-        .toString()
-        .toUpperCase()
-        .replace(/&/g, " ")
-        .replace(/[,.;:/\\()\[\]{}'"`~!@#$%^*+=<>?|-]/g, " ")
-        .replace(/\s+/g, " ")
-        .trim();
+      return applyPhrases(s);
     }
 
     function tokenizeQuery(q){
-      const tokens = normalizeForTokens(q).split(" ").filter(Boolean);
-      return tokens.filter(t => t !== "AND");
+      const base = normalizeForTokens(q);
+      const tokens = base.split(" ").filter(Boolean);
+
+      // Build OR-groups per token (token + its synonyms)
+      const groups = [];
+      for (const t of tokens){
+        if (t === "AND") continue;
+        const alts = new Set([t]);
+        const extras = SYN[t] || [];
+        for (const e of extras) alts.add(e);
+        groups.push(Array.from(alts));
+      }
+      return groups;
     }
 
-    function buildHaystack(r){
+    function buildHaystack(r){(r){
       return normalizeForTokens(`${r.Route ?? ""} ${r.YARD ?? ""} ${r.STREETSORT ?? ""}`);
     }
 
     function tokenMatch(query, haystack){
       if (!query) return true;
-      const tokens = tokenizeQuery(query);
-      if (!tokens.length) return true;
-      return tokens.every(t => haystack.includes(t));
+      const groups = tokenizeQuery(query);
+      if (!groups.length) return true;
+
+      // For each group, at least one alternative must appear in the haystack
+      return groups.every(group => group.some(t => haystack.includes(t)));
     }
 
     function parseCoord(s){
