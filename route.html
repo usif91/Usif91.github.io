@@ -200,6 +200,26 @@
       justify-content: center;
     }
 
+  
+    /* Zebra striping (applied via JS classes) */
+    tr.zebra-odd > td { background: rgba(255,255,255,0.03); }
+    tr.zebra-even > td { background: rgba(255,255,255,0.00); }
+    tr.zebra-odd.detail-row > td { background: rgba(255,255,255,0.02); }
+    tr.zebra-even.detail-row > td { background: rgba(255,255,255,0.01); }
+
+    /* Show full cell content (wrap, no ellipsis) */
+    tbody td{
+      overflow: visible;
+      text-overflow: clip;
+      word-break: break-word;
+    }
+    .cell-flex > span{
+      white-space: normal;
+      overflow: visible;
+      text-overflow: clip;
+      max-width: none;
+    }
+
   </style>
 </head>
 <body>
@@ -379,7 +399,11 @@
 
       const hiKey = getHighlightedPlanKey();
 
+      let zebraIndex = 0;
       for (const r of rows){
+        const zebraClass = (zebraIndex % 2 === 0) ? "zebra-even" : "zebra-odd";
+        zebraIndex++;
+
         const isExpanded = state.expandedRoutes.has(String(r.Route));
 
         const routeCell = `
@@ -409,6 +433,7 @@
         `;
 
         const tr = document.createElement("tr");
+        tr.className = zebraClass;
         tr.innerHTML = `
           <td>${routeCell}</td>
           <td>${yardCell}</td>
@@ -418,7 +443,7 @@
 
         // Detail row (collapsible)
         const detailTr = document.createElement("tr");
-        detailTr.className = "detail-row";
+        detailTr.className = `detail-row ${zebraClass}`;
         detailTr.style.display = isExpanded ? "" : "none";
 
         // mini table WITHOUT Route and WITHOUT 1 car (per request)
