@@ -249,6 +249,8 @@
   const $ = (id) => document.getElementById(id);
 
   const state = {
+      synonyms: [],
+
     DATA: [],
     query: "",
     matches: [],
@@ -262,6 +264,7 @@
 
     userPos: null,
     expandedRoutes: new Set(),
+      synonyms: new Map(),
 
     // Synonyms from Sheet3 (optional)
     SYN_TOKEN: new Map(), // token -> Set(tokens)
@@ -297,41 +300,25 @@
   }
 
   function buildHaystack(r){
-    return normalizeForTokens(`${r.Route ?? ""} ${r.YARD ?? ""} ${r.STREETSORT ?? ""}`);
+    const raw = (r.Route ?? "").toString();
+    const digits = raw.replace(/\D/g,"");
+    const padded = (digits || raw).toString().padStart(5,"0");
+    return normalizeForTokens(`${padded} ${digits || raw} ${r.YARD ?? ""} ${r.STREETSORT ?? ""}`);
   }
 
   // Smarter match: base tokens must match, but each base token can match itself OR any synonym
+  function tokenizeQuery(q){
+    const qNorm = normalizeForTokens(q);
+    return qNorm.split(" ").filter(Boolean).filter(t => t !== "AND");
+  }
+
   function tokenMatch(query, haystack){
     if (!query) return true;
-    const qNorm = normalizeForTokens(query);
-    const baseTokens = qNorm.split(" ").filter(Boolean).filter(t => t !== "AND");
-    if (!baseTokens.length) return true;
-
-    // If query contains any synonym-phrase from a group, allow that group tokens as synonyms too
-    const groupTokensIfHit = [];
-    for (const g of state.SYN_GROUPS){
-      let hit = false;
-      for (const ph of g.phrases){
-        if (ph && qNorm.includes(ph)){ hit = true; break; }
-      }
-      if (hit) groupTokensIfHit.push(g.tokens);
-    }
-
-    return baseTokens.every(bt => {
-      if (haystack.includes(bt)) return true;
-
-      const syn = state.SYN_TOKEN.get(bt);
-      if (syn){
-        for (const s of syn){
-          if (haystack.includes(s)) return true;
-        }
-      }
-      for (const set of groupTokensIfHit){
-        for (const s of set){
-          if (haystack.includes(s)) return true;
-        }
-      }
-      return false;
+    const tokens = tokenizeQuery(query);
+    if (!tokens.length) return true;
+    return tokens.every(t => {
+      const alts = state.synonyms.get(t) || [t];
+      return alts.some(a => haystack.includes(a));
     });
   }
 
@@ -395,6 +382,11 @@
     if (mins >= t630 && mins < t1430) return "6 car";
     if (mins >= t1430 && mins < t2230) return "4 car";
     return "2 car";
+  }
+
+  function showNoMatch(){
+    const tbody = $("tbody");
+    tbody.innerHTML = `<tr class="zebra-even"><td colspan="3" style="padding:18px 10px; white-space:normal;">Sorry, we didn\'t find any match.</td></tr>`;
   }
 
   function renderRows(rows, append=false){
@@ -484,6 +476,7 @@
 
     updateCounts();
     renderNext(true);
+      if(state.matches.length === 0){$("tbody").innerHTML = `<tr><td colspan="3" class="muted">Sorry, we didn\'t find any match.</td></tr>`;}
   }
 
   function renderNext(clear=false){
@@ -491,6 +484,7 @@
     const end = Math.min(state.shown + state.pageSize, state.matches.length);
     const chunk = state.matches.slice(start, end);
 
+    if (state.matches.length===0 && clear){ showNoMatch(); state.shown=0; $("btnMore").disabled=true; $("shownNote").textContent="0 matches"; return; }
     renderRows(chunk, !clear);
     state.shown = end;
 
@@ -509,6 +503,7 @@
       return r;
     });
 
+    if (state.nearSorted.length===0 && start===0){ showNoMatch(); state.nearIndex=0; $("btnMore").disabled=true; $("shownNote").textContent="0 matches"; return; }
     renderRows(chunk, start !== 0);
     state.nearIndex = end;
 
@@ -534,6 +529,22 @@
 
       const sheet1 = XLSX.utils.sheet_to_json(s1, {defval:null});
       const sheet2 = XLSX.utils.sheet_to_json(s2, {defval:null});
+        // Sheet3: alternatives/synonyms (each row is a group; any cell is an alternative)
+        state.synonyms = new Map();
+        const s3name = wb.SheetNames[2];
+        if (s3name){
+          const s3 = wb.Sheets[s3name];
+          const sheet3 = XLSX.utils.sheet_to_json(s3, {defval:null});
+          for (const row of sheet3){
+            const terms = Object.values(row)
+              .filter(v => v !== null && v !== undefined && String(v).trim() !== "")
+              .map(v => normalizeForTokens(String(v)))
+              .filter(Boolean);
+            const uniq = Array.from(new Set(terms));
+            if (uniq.length < 2) continue;
+            for (const term of uniq){ state.synonyms.set(term, uniq); }
+          }
+        }
 
       // Optional Sheet3 for alternatives/synonyms
       let sheet3 = [];
