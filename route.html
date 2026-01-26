@@ -108,15 +108,61 @@
     .error{ color: var(--danger); font-size:12px; }
     .ok{ color: var(--ok); font-size:12px; }
 
+    .cell-flex{ display:flex; align-items:center; gap:8px; }
+    .icon-btn{
+      width:28px; height:28px;
+      display:inline-flex; align-items:center; justify-content:center;
+      padding:0;
+      border-radius:10px;
+      border:1px solid var(--border);
+      background: rgba(18,22,36,0.92);
+      cursor:pointer;
+      user-select:none;
+      flex: 0 0 auto;
+    }
+    .icon-btn:hover{ border-color: rgba(122,162,255,0.55); }
+    .icon-btn:active{ transform: translateY(1px); }
+
+    .link{
+      color: var(--accent);
+      text-decoration:none;
+    }
+    .link:hover{ text-decoration:underline; }
+
+    /* Expanded detail row */
+    .detail-row td{
+      background: rgba(18,22,36,0.65);
+      padding: 10px 10px 14px;
+    }
+    .detail-box{
+      border:1px solid rgba(39,48,74,0.8);
+      background: rgba(11,13,18,0.35);
+      border-radius:12px;
+      padding:10px;
+      overflow:auto;
+    }
+    .mini{
+      border-collapse: collapse;
+      width: 100%;
+      min-width: 520px;
+      font-size: 12px;
+    }
+    .mini th, .mini td{
+      border-bottom: 1px solid rgba(39,48,74,0.7);
+      padding: 6px 8px;
+    }
+    .mini th{ color: rgba(232,235,243,0.92); text-align:left; }
+    .mini td{ color: rgba(232,235,243,0.92); }
+
     /* Mobile friendliness */
     @media (max-width: 760px){
       header{ padding:14px 12px 8px; }
       main{ padding:0 12px 18px; }
       .controls{ grid-template-columns: 1fr; }
       button{ width:100%; }
-      table{ min-width: 760px; } /* still scrollable if needed */
-      /* hide car columns on small screens to reduce width */
+      table{ min-width: 760px; }
       th.car, td.car{ display:none; }
+      .mini{ min-width: 0; }
     }
   </style>
 </head>
@@ -147,7 +193,6 @@
                 <th>Route</th>
                 <th>YARD</th>
                 <th>STREETSORT</th>
-                <th>Coordinates</th>
                 <th>Distance (mi)</th>
                 <th class="car">6 car</th>
                 <th class="car">5 car</th>
@@ -176,7 +221,6 @@
 
   <script>
     const EXCEL_FILE = "data.xlsx"; // must sit next to this HTML file
-
     const $ = (id) => document.getElementById(id);
 
     const state = {
@@ -192,10 +236,10 @@
       nearPageSize: 5,
 
       userPos: null, // {lat, lon, accuracy}
+      expandedRoutes: new Set(),
     };
 
     function normalizeForTokens(s){
-      // Uppercase, drop punctuation, and ignore connective tokens like AND / & / commas.
       return (s ?? "")
         .toString()
         .toUpperCase()
@@ -207,7 +251,6 @@
 
     function tokenizeQuery(q){
       const tokens = normalizeForTokens(q).split(" ").filter(Boolean);
-      // remove connective/stop tokens
       return tokens.filter(t => t !== "AND");
     }
 
@@ -251,9 +294,38 @@
       el.innerHTML = `<div class="${kind} pill">${msg}</div>`;
     }
 
+    function escapeHtml(s){
+      return String(s)
+        .replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")
+        .replaceAll('"',"&quot;").replaceAll("'","&#039;");
+    }
+
     function formatVal(v){
       if (v === null || v === undefined || v === "") return '<span class="muted">—</span>';
-      return String(v);
+      return escapeHtml(v);
+    }
+
+    async function copyText(text){
+      try{
+        await navigator.clipboard.writeText(text);
+        setStatus("ok", `Copied: <b>${escapeHtml(text)}</b>`);
+        setTimeout(() => setStatus("", ""), 1200);
+      }catch(e){
+        // Fallback
+        const ta = document.createElement("textarea");
+        ta.value = text;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand("copy");
+        ta.remove();
+        setStatus("ok", `Copied: <b>${escapeHtml(text)}</b>`);
+        setTimeout(() => setStatus("", ""), 1200);
+      }
+    }
+
+    function mapsDirUrl(lat, lon){
+      // Google Maps directions to destination
+      return `https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}`;
     }
 
     function renderRows(rows, append=false){
@@ -268,12 +340,40 @@
           dist = r.__distance;
         }
 
+        const isExpanded = state.expandedRoutes.has(String(r.Route));
+        const routeCell = `
+          <div class="cell-flex">
+            <span>${formatVal(r.Route)}</span>
+            <button class="icon-btn" title="Copy route" data-copy-route="${escapeHtml(r.Route)}">⧉</button>
+          </div>
+        `;
+
+        const yardCell = `
+          <div class="cell-flex">
+            <span>${formatVal(r.YARD)}</span>
+            <button class="icon-btn" title="${isExpanded ? "Collapse" : "Expand"} details" data-toggle="${escapeHtml(r.Route)}">${isExpanded ? "▾" : "▸"}</button>
+          </div>
+        `;
+
+        const hasCoords = (typeof r.lat === "number" && typeof r.lon === "number");
+        const streetLink = hasCoords
+          ? `<a class="link" href="${mapsDirUrl(r.lat, r.lon)}" target="_blank" rel="noopener">${formatVal(r.STREETSORT)}</a>`
+          : `${formatVal(r.STREETSORT)}`;
+
+        const streetCell = `
+          <div class="cell-flex">
+            <span style="min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; display:inline-block; max-width:360px;">
+              ${streetLink}
+            </span>
+            <button class="icon-btn" title="Copy route + streetsort" data-copy-route-street="${escapeHtml(r.Route)}|${escapeHtml(r.STREETSORT ?? "")}">⧉</button>
+          </div>
+        `;
+
         const tr = document.createElement("tr");
         tr.innerHTML = `
-          <td>${formatVal(r.Route)}</td>
-          <td>${formatVal(r.YARD)}</td>
-          <td>${formatVal(r.STREETSORT)}</td>
-          <td>${formatVal(r.coordinates)}</td>
+          <td>${routeCell}</td>
+          <td>${yardCell}</td>
+          <td>${streetCell}</td>
           <td>${dist === null ? '<span class="muted">—</span>' : dist.toFixed(2)}</td>
           <td class="car">${formatVal(r["6 car"])}</td>
           <td class="car">${formatVal(r["5 car"])}</td>
@@ -283,6 +383,43 @@
           <td class="car">${formatVal(r["1 car"])}</td>
         `;
         tbody.appendChild(tr);
+
+        // Detail row (collapsible)
+        const detailTr = document.createElement("tr");
+        detailTr.className = "detail-row";
+        detailTr.style.display = isExpanded ? "" : "none";
+        detailTr.innerHTML = `
+          <td colspan="10">
+            <div class="detail-box">
+              <div class="note" style="margin-bottom:8px;">Sheet 2 details</div>
+              <table class="mini">
+                <thead>
+                  <tr>
+                    <th>Route</th>
+                    <th>6 car</th>
+                    <th>5 car</th>
+                    <th>4 car</th>
+                    <th>3 car</th>
+                    <th>2 car</th>
+                    <th>1 car</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>${formatVal(r.Route)}</td>
+                    <td>${formatVal(r["6 car"])}</td>
+                    <td>${formatVal(r["5 car"])}</td>
+                    <td>${formatVal(r["4 car"])}</td>
+                    <td>${formatVal(r["3 car"])}</td>
+                    <td>${formatVal(r["2 car"])}</td>
+                    <td>${formatVal(r["1 car"])}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </td>
+        `;
+        tbody.appendChild(detailTr);
       }
     }
 
@@ -341,6 +478,7 @@
       state.query = "";
       $("q").value = "";
       state.userPos = null;
+      state.expandedRoutes.clear();
       setStatus("", "");
       computeMatches();
     }
@@ -391,7 +529,7 @@
             Route: row1.Route,
             YARD: row1.YARD ?? null,
             STREETSORT: row1.STREETSORT ?? null,
-            coordinates: row1.coordinates ?? null,
+            coordinates: row1.coordinates ?? null, // kept for map navigation only (not displayed)
             "6 car": row2["6 car"] ?? null,
             "5 car": row2["5 car"] ?? null,
             "4 car": row2["4 car"] ?? null,
@@ -456,6 +594,44 @@
       );
     }
 
+    function handleTableClick(e){
+      const btn = e.target.closest("button");
+      if (!btn) return;
+
+      const copyRoute = btn.getAttribute("data-copy-route");
+      const copyRouteStreet = btn.getAttribute("data-copy-route-street");
+      const toggle = btn.getAttribute("data-toggle");
+
+      if (copyRoute !== null){
+        copyText(String(copyRoute));
+        return;
+      }
+      if (copyRouteStreet !== null){
+        const [route, street] = String(copyRouteStreet).split("|");
+        copyText(`${route} ${street}`.trim());
+        return;
+      }
+      if (toggle !== null){
+        const key = String(toggle);
+        if (state.expandedRoutes.has(key)) state.expandedRoutes.delete(key);
+        else state.expandedRoutes.add(key);
+
+        // Re-render current view (preserve mode and pagination)
+        const tbody = $("tbody");
+        tbody.innerHTML = "";
+        if (state.nearMode){
+          // re-render all currently shown nearest (nearIndex indicates shown)
+          const shown = state.nearSorted.slice(0, state.nearIndex).map(x => {
+            const r = {...x.r}; r.__distance = x.d; return r;
+          });
+          renderRows(shown, false);
+        } else {
+          const shown = state.matches.slice(0, state.shown);
+          renderRows(shown, false);
+        }
+      }
+    }
+
     $("q").addEventListener("input", (e) => {
       state.query = e.target.value || "";
       state.userPos = null;
@@ -470,7 +646,9 @@
 
     $("btnClear").addEventListener("click", clearSearch);
     $("btnNear").addEventListener("click", searchNearMe);
+    $("tbody").addEventListener("click", handleTableClick);
 
+    // Boot
     loadWorkbook();
   </script>
 </body>
