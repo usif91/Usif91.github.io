@@ -8,6 +8,7 @@
     :root{
       --bg:#0b0d12; --card:#121624; --text:#e8ebf3; --muted:#a8b0c6;
       --border:#27304a; --accent:#7aa2ff; --danger:#ff6b6b; --ok:#2dd4bf;
+      --hi: rgba(122,162,255,0.18);
     }
     *{ box-sizing:border-box; }
     body{
@@ -19,14 +20,14 @@
       color:var(--text);
     }
     header{
-      padding:18px 16px 10px;
+      padding:16px 14px 10px;
       position:sticky; top:0;
       background: linear-gradient(to bottom, rgba(11,13,18,0.95), rgba(11,13,18,0.72), rgba(11,13,18,0));
       backdrop-filter: blur(10px);
       z-index:10;
     }
-    .wrap{ max-width:1200px; margin:0 auto; }
-    h1{ margin:0 0 10px; font-size:20px; letter-spacing:0.2px; }
+    .wrap{ max-width:1100px; margin:0 auto; }
+    h1{ margin:0 0 10px; font-size:18px; letter-spacing:0.2px; }
     .controls{
       display:grid;
       grid-template-columns: 1fr auto auto;
@@ -60,8 +61,11 @@
       background: rgba(18,22,36,0.75);
       padding:6px 10px;
       border-radius:999px;
+      display:flex;
+      align-items:center;
+      gap:8px;
     }
-    main{ padding:0 16px 22px; }
+    main{ padding:0 14px 18px; }
     .card{
       margin-top:12px;
       border:1px solid var(--border);
@@ -70,13 +74,16 @@
       overflow:hidden;
       box-shadow: 0 10px 30px rgba(0,0,0,0.22);
     }
-    .table-wrap{ overflow:auto; -webkit-overflow-scrolling: touch; }
     table{
       width:100%;
       border-collapse:collapse;
-      min-width: 980px;
+      table-layout:fixed; /* enables percentage widths */
       font-size:13px;
     }
+    col.route { width: 15%; }
+    col.yard  { width: 15%; }
+    col.street{ width: 70%; }
+
     thead th{
       position:sticky; top:0;
       background: rgba(18,22,36,0.95);
@@ -89,9 +96,12 @@
     }
     tbody td{
       border-bottom:1px solid rgba(39,48,74,0.7);
-      padding:9px 10px;
+      padding:10px 10px;
       color: rgba(232,235,243,0.92);
       vertical-align:top;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      white-space:nowrap;
     }
     tbody tr:hover td{ background: rgba(122,162,255,0.08); }
     .muted{ color: var(--muted); }
@@ -108,7 +118,8 @@
     .error{ color: var(--danger); font-size:12px; }
     .ok{ color: var(--ok); font-size:12px; }
 
-    .cell-flex{ display:flex; align-items:center; gap:8px; }
+    .cell-flex{ display:flex; align-items:center; gap:8px; min-width:0; }
+    .cell-flex > span{ min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; display:block; }
     .icon-btn{
       width:28px; height:28px;
       display:inline-flex; align-items:center; justify-content:center;
@@ -123,16 +134,14 @@
     .icon-btn:hover{ border-color: rgba(122,162,255,0.55); }
     .icon-btn:active{ transform: translateY(1px); }
 
-    .link{
-      color: var(--accent);
-      text-decoration:none;
-    }
+    .link{ color: var(--accent); text-decoration:none; }
     .link:hover{ text-decoration:underline; }
 
     /* Expanded detail row */
     .detail-row td{
       background: rgba(18,22,36,0.65);
       padding: 10px 10px 14px;
+      white-space: normal;
     }
     .detail-box{
       border:1px solid rgba(39,48,74,0.8);
@@ -144,25 +153,38 @@
     .mini{
       border-collapse: collapse;
       width: 100%;
-      min-width: 520px;
+      table-layout: fixed;
       font-size: 12px;
     }
     .mini th, .mini td{
       border-bottom: 1px solid rgba(39,48,74,0.7);
       padding: 6px 8px;
+      white-space: nowrap;
+      overflow:hidden;
+      text-overflow: ellipsis;
     }
     .mini th{ color: rgba(232,235,243,0.92); text-align:left; }
     .mini td{ color: rgba(232,235,243,0.92); }
+    .mini .highlight{
+      background: var(--hi);
+      border-radius: 6px;
+    }
 
-    /* Mobile friendliness */
+    /* Spinner */
+    .spinner{
+      width:14px; height:14px;
+      border:2px solid rgba(232,235,243,0.25);
+      border-top-color: rgba(232,235,243,0.9);
+      border-radius: 50%;
+      display:inline-block;
+      animation: spin 0.85s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
     @media (max-width: 760px){
-      header{ padding:14px 12px 8px; }
-      main{ padding:0 12px 18px; }
       .controls{ grid-template-columns: 1fr; }
       button{ width:100%; }
-      table{ min-width: 760px; }
-      th.car, td.car{ display:none; }
-      .mini{ min-width: 0; }
+      table{ font-size: 13px; }
     }
   </style>
 </head>
@@ -186,25 +208,22 @@
   <main>
     <div class="wrap">
       <div class="card">
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Route</th>
-                <th>YARD</th>
-                <th>STREETSORT</th>
-                <th>Distance (mi)</th>
-                <th class="car">6 car</th>
-                <th class="car">5 car</th>
-                <th class="car">4 car</th>
-                <th class="car">3 car</th>
-                <th class="car">2 car</th>
-                <th class="car">1 car</th>
-              </tr>
-            </thead>
-            <tbody id="tbody"></tbody>
-          </table>
-        </div>
+        <table>
+          <colgroup>
+            <col class="route" />
+            <col class="yard" />
+            <col class="street" />
+          </colgroup>
+          <thead>
+            <tr>
+              <th>Route</th>
+              <th>YARD</th>
+              <th>STREETSORT</th>
+            </tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
+
         <div class="actions">
           <div class="left-actions">
             <button id="btnMore">Load more</button>
@@ -216,11 +235,10 @@
   </main>
 
   <!-- Reads ./data.xlsx each time (same folder as this HTML). -->
-  <!-- Note: Browsers usually require serving this over http(s) for fetch() to read the Excel file. -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
   <script>
-    const EXCEL_FILE = "data.xlsx"; // must sit next to this HTML file
+    const EXCEL_FILE = "data.xlsx";
     const $ = (id) => document.getElementById(id);
 
     const state = {
@@ -231,7 +249,7 @@
       pageSize: 200,
 
       nearMode: false,
-      nearSorted: [], // full sorted list by distance
+      nearSorted: [],
       nearIndex: 0,
       nearPageSize: 5,
 
@@ -288,10 +306,10 @@
       return R * c;
     }
 
-    function setStatus(kind, msg){
+    function setStatus(kind, msgHtml){
       const el = $("status");
-      if (!msg){ el.textContent = ""; return; }
-      el.innerHTML = `<div class="${kind} pill">${msg}</div>`;
+      if (!msgHtml){ el.textContent = ""; return; }
+      el.innerHTML = `<div class="${kind} pill">${msgHtml}</div>`;
     }
 
     function escapeHtml(s){
@@ -309,9 +327,8 @@
       try{
         await navigator.clipboard.writeText(text);
         setStatus("ok", `Copied: <b>${escapeHtml(text)}</b>`);
-        setTimeout(() => setStatus("", ""), 1200);
+        setTimeout(() => setStatus("", ""), 1100);
       }catch(e){
-        // Fallback
         const ta = document.createElement("textarea");
         ta.value = text;
         document.body.appendChild(ta);
@@ -319,28 +336,38 @@
         document.execCommand("copy");
         ta.remove();
         setStatus("ok", `Copied: <b>${escapeHtml(text)}</b>`);
-        setTimeout(() => setStatus("", ""), 1200);
+        setTimeout(() => setStatus("", ""), 1100);
       }
     }
 
     function mapsDirUrl(lat, lon){
-      // Google Maps directions to destination
       return `https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}`;
+    }
+
+    function getHighlightedPlanKey(){
+      // Use user's local time
+      const now = new Date();
+      const mins = now.getHours() * 60 + now.getMinutes();
+
+      const t630 = 6*60 + 30;   // 390
+      const t1430 = 14*60 + 30; // 870
+      const t2230 = 22*60 + 30; // 1350
+
+      if (mins >= t630 && mins < t1430) return "6 car";
+      if (mins >= t1430 && mins < t2230) return "4 car";
+      // overnight (22:30 -> 06:30)
+      return "2 car";
     }
 
     function renderRows(rows, append=false){
       const tbody = $("tbody");
       if (!append) tbody.innerHTML = "";
 
-      for (const r of rows){
-        let dist = null;
-        if (state.userPos && typeof r.lat === "number" && typeof r.lon === "number"){
-          dist = haversineMiles(state.userPos.lat, state.userPos.lon, r.lat, r.lon);
-        } else if (typeof r.__distance === "number"){
-          dist = r.__distance;
-        }
+      const hiKey = getHighlightedPlanKey();
 
+      for (const r of rows){
         const isExpanded = state.expandedRoutes.has(String(r.Route));
+
         const routeCell = `
           <div class="cell-flex">
             <span>${formatVal(r.Route)}</span>
@@ -351,7 +378,7 @@
         const yardCell = `
           <div class="cell-flex">
             <span>${formatVal(r.YARD)}</span>
-            <button class="icon-btn" title="${isExpanded ? "Collapse" : "Expand"} details" data-toggle="${escapeHtml(r.Route)}">${isExpanded ? "▾" : "▸"}</button>
+            <button class="icon-btn" title="${isExpanded ? "Collapse" : "Expand"}" data-toggle="${escapeHtml(r.Route)}">${isExpanded ? "▾" : "▸"}</button>
           </div>
         `;
 
@@ -362,9 +389,7 @@
 
         const streetCell = `
           <div class="cell-flex">
-            <span style="min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; display:inline-block; max-width:360px;">
-              ${streetLink}
-            </span>
+            <span>${streetLink}</span>
             <button class="icon-btn" title="Copy route + streetsort" data-copy-route-street="${escapeHtml(r.Route)}|${escapeHtml(r.STREETSORT ?? "")}">⧉</button>
           </div>
         `;
@@ -374,13 +399,6 @@
           <td>${routeCell}</td>
           <td>${yardCell}</td>
           <td>${streetCell}</td>
-          <td>${dist === null ? '<span class="muted">—</span>' : dist.toFixed(2)}</td>
-          <td class="car">${formatVal(r["6 car"])}</td>
-          <td class="car">${formatVal(r["5 car"])}</td>
-          <td class="car">${formatVal(r["4 car"])}</td>
-          <td class="car">${formatVal(r["3 car"])}</td>
-          <td class="car">${formatVal(r["2 car"])}</td>
-          <td class="car">${formatVal(r["1 car"])}</td>
         `;
         tbody.appendChild(tr);
 
@@ -388,33 +406,21 @@
         const detailTr = document.createElement("tr");
         detailTr.className = "detail-row";
         detailTr.style.display = isExpanded ? "" : "none";
+
+        // mini table WITHOUT Route and WITHOUT 1 car (per request)
+        const cols = ["6 car","5 car","4 car","3 car","2 car"];
+        const ths = cols.map(c => `<th>${escapeHtml(c)}</th>`).join("");
+        const tds = cols.map(c => {
+          const cls = (c === hiKey) ? "highlight" : "";
+          return `<td class="${cls}">${formatVal(r[c])}</td>`;
+        }).join("");
+
         detailTr.innerHTML = `
-          <td colspan="10">
+          <td colspan="3">
             <div class="detail-box">
-              <div class="note" style="margin-bottom:8px;">Sheet 2 details</div>
               <table class="mini">
-                <thead>
-                  <tr>
-                    <th>Route</th>
-                    <th>6 car</th>
-                    <th>5 car</th>
-                    <th>4 car</th>
-                    <th>3 car</th>
-                    <th>2 car</th>
-                    <th>1 car</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td>${formatVal(r.Route)}</td>
-                    <td>${formatVal(r["6 car"])}</td>
-                    <td>${formatVal(r["5 car"])}</td>
-                    <td>${formatVal(r["4 car"])}</td>
-                    <td>${formatVal(r["3 car"])}</td>
-                    <td>${formatVal(r["2 car"])}</td>
-                    <td>${formatVal(r["1 car"])}</td>
-                  </tr>
-                </tbody>
+                <thead><tr>${ths}</tr></thead>
+                <tbody><tr>${tds}</tr></tbody>
               </table>
             </div>
           </td>
@@ -451,7 +457,7 @@
 
       $("btnMore").disabled = state.shown >= state.matches.length;
       $("shownNote").textContent = state.matches.length
-        ? `Showing ${state.shown.toLocaleString()} of ${state.matches.length.toLocaleString()} matches`
+        ? `Showing ${state.shown.toLocaleString()} of ${state.matches.length.toLocaleString()}`
         : `No matches`;
     }
 
@@ -484,7 +490,7 @@
     }
 
     async function loadWorkbook(){
-      setStatus("muted", `Loading ${EXCEL_FILE}…`);
+      setStatus("muted", `Loading ${EXCEL_FILE}… <span class="spinner"></span>`);
       try{
         const resp = await fetch(EXCEL_FILE, {cache: "no-store"});
         if (!resp.ok) throw new Error(`Fetch failed (${resp.status})`);
@@ -529,7 +535,7 @@
             Route: row1.Route,
             YARD: row1.YARD ?? null,
             STREETSORT: row1.STREETSORT ?? null,
-            coordinates: row1.coordinates ?? null, // kept for map navigation only (not displayed)
+            coordinates: row1.coordinates ?? null, // only for navigation/near-me
             "6 car": row2["6 car"] ?? null,
             "5 car": row2["5 car"] ?? null,
             "4 car": row2["4 car"] ?? null,
@@ -550,10 +556,10 @@
         updateCounts();
         computeMatches();
       }catch(err){
-        setStatus("error", `Could not load ${EXCEL_FILE}. If you opened this as a file (file://), run a local web server so fetch() can read the Excel file. Error: ${err.message}`);
+        setStatus("error", `Could not load ${EXCEL_FILE}. Error: ${escapeHtml(err.message)}`);
         state.DATA = [];
         updateCounts();
-        renderRows([], false);
+        $("tbody").innerHTML = "";
         $("btnMore").disabled = true;
         $("shownNote").textContent = "—";
       }
@@ -564,7 +570,7 @@
         setStatus("error", "Geolocation not supported in this browser.");
         return;
       }
-      setStatus("muted", "Requesting location…");
+      setStatus("muted", `Searching near you… <span class="spinner"></span>`);
       navigator.geolocation.getCurrentPosition(
         (pos) => {
           state.userPos = {
@@ -585,12 +591,15 @@
           const lat = state.userPos.lat.toFixed(6);
           const lon = state.userPos.lon.toFixed(6);
           const acc = (state.userPos.accuracy ?? 0).toFixed(0);
-          setStatus("ok", `Captured your location: <b>${lat}, ${lon}</b> (±${acc} m). Showing nearest results.`);
+          setStatus("ok", `Captured your location: <b>${lat}, ${lon}</b> (±${acc} m).`);
 
+          // Reset expanded to avoid heavy open state changes across new ordered view
+          state.expandedRoutes.clear();
+          $("tbody").innerHTML = "";
           renderNextNear();
         },
-        (err) => setStatus("error", `Could not get your location: ${err.message}`),
-        { enableHighAccuracy: true, timeout: 6000, maximumAge: 0 }
+        (err) => setStatus("error", `Could not get your location: ${escapeHtml(err.message)}`),
+        { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
       );
     }
 
@@ -616,11 +625,9 @@
         if (state.expandedRoutes.has(key)) state.expandedRoutes.delete(key);
         else state.expandedRoutes.add(key);
 
-        // Re-render current view (preserve mode and pagination)
-        const tbody = $("tbody");
-        tbody.innerHTML = "";
+        // Re-render currently shown rows (preserve mode and pagination)
+        $("tbody").innerHTML = "";
         if (state.nearMode){
-          // re-render all currently shown nearest (nearIndex indicates shown)
           const shown = state.nearSorted.slice(0, state.nearIndex).map(x => {
             const r = {...x.r}; r.__distance = x.d; return r;
           });
@@ -648,7 +655,6 @@
     $("btnNear").addEventListener("click", searchNearMe);
     $("tbody").addEventListener("click", handleTableClick);
 
-    // Boot
     loadWorkbook();
   </script>
 </body>
