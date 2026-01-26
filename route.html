@@ -80,9 +80,9 @@
       table-layout:fixed; /* enables percentage widths */
       font-size:13px;
     }
-    col.route { width: 15%; }
-    col.yard  { width: 15%; }
-    col.street{ width: 70%; }
+    col.route { width: 23%; }
+    col.yard  { width: 20%; }
+    col.street{ width: 57%; }
 
     thead th{
       position:sticky; top:0;
@@ -218,6 +218,13 @@
       overflow: visible;
       text-overflow: clip;
       max-width: none;
+    }
+
+  
+    /* Center expanded table completely */
+    .mini th, .mini td{
+      text-align: center !important;
+      vertical-align: middle !important;
     }
 
   </style>
