@@ -186,6 +186,20 @@
       button{ width:100%; }
       table{ font-size: 13px; }
     }
+  
+    table th, table td{
+      text-align: center;
+      vertical-align: middle;
+    }
+    tbody td{
+      padding: 14px 10px;
+      white-space: normal;
+      line-height: 1.35;
+    }
+    .cell-flex{
+      justify-content: center;
+    }
+
   </style>
 </head>
 <body>
@@ -195,7 +209,7 @@
       <div class="controls">
         <input id="q" type="search" placeholder='Search (partial match). Example: "3rd jef"' autocomplete="off" />
         <button id="btnNear">Search near me (top 5)</button>
-        <button id="btnClear" title="Clear search">Clear</button>
+        
       </div>
       <div class="meta">
         <div class="pill"><span class="muted">Rows:</span> <span id="totalRows">—</span></div>
@@ -651,8 +665,7 @@
       else renderNext(false);
     });
 
-    $("btnClear").addEventListener("click", clearSearch);
-    $("btnNear").addEventListener("click", searchNearMe);
+        $("btnNear").addEventListener("click", searchNearMe);
     $("tbody").addEventListener("click", handleTableClick);
 
     loadWorkbook();
