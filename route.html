@@ -228,7 +228,7 @@
           <tr>
             <th>Route</th>
             <th>YARD</th>
-            <th>STREETSORT</th>
+            <th>Intersection</th>
           </tr>
         </thead>
         <tbody id="tbody"></tbody>
@@ -312,7 +312,28 @@
     return qNorm.split(" ").filter(Boolean).filter(t => t !== "AND");
   }
 
-  function tokenMatch(query, haystack){
+  
+  function queryMode(q){
+    const norm = normalizeForTokens(q);
+    if(!norm) return "all";
+    const hasLetter = /[A-Z]/.test(norm);
+    const hasDigit  = /[0-9]/.test(norm);
+    if(!hasLetter && hasDigit) return "numeric";
+    return "alpha";
+  }
+
+  function haystackForMode(r, mode){
+    if(mode === "numeric"){
+      const route = formatRoute(r.Route);
+      return normalizeForTokens(`${route} ${r.STREETSORT ?? ""}`);
+    }
+    if(mode === "alpha"){
+      return normalizeForTokens(`${r.STREETSORT ?? ""}`);
+    }
+    return buildHaystack(r);
+  }
+
+function tokenMatch(query, haystack){
     if (!query) return true;
     const tokens = tokenizeQuery(query);
     if (!tokens.length) return true;
@@ -471,7 +492,8 @@
     state.nearIndex = 0;
 
     const q = state.query;
-    state.matches = state.DATA.filter(r => tokenMatch(q, buildHaystack(r)));
+    const mode = queryMode(q);
+    state.matches = state.DATA.filter(r => tokenMatch(q, haystackForMode(r, mode)));
     state.shown = 0;
 
     updateCounts();
